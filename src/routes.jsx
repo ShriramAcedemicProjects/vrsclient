@@ -11,6 +11,7 @@ import TravelRoute from "./adminComponents/TravelRoute";
 import TravelRouteList from "./adminComponents/TravelRouteList";
 import TravelRouteEdit from "./adminComponents/TravelRouteEdit";
 import Home from "./webpages/Home";
+import Register from "./customerComponents/Register";
 
 const AppRoutes = () => {
   return (
@@ -29,6 +30,7 @@ const AppRoutes = () => {
         <Route path="/TravelRouteAdd" element={<TravelRoute />} />
         <Route path="/TravelRouteList" element={<TravelRouteList />} />
         <Route path="/TravelRouteEdit/:routeId" element={<TravelRouteEdit />} />
+        <Route path="/Register" element={<Register />} />
       </Routes>
     </Router>
   );
