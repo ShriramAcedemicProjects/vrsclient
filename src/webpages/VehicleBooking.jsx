@@ -13,15 +13,18 @@ import {
   Typography,
   TextField,
 } from "@mui/material";
+import { toast } from "react-toastify";
 import CustomerLayout from "./CustomerLayout";
 
-const VehicleBooking = ({ customerId }) => {
+const VehicleBooking = () => {
+  
   const [routes, setRoutes] = useState([]);
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
   const [matchedRoute, setMatchedRoute] = useState(null);
+  const [km, setKM] = useState(null);
 
-  const [vehicleType, setVehicleType] = useState("Car");
+  const [vehicleType, setVehicleType] = useState();
   const [availableVehicles, setAvailableVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
@@ -32,7 +35,7 @@ const VehicleBooking = ({ customerId }) => {
   useEffect(() => {
     const token = localStorage.getItem("token"); // Optional: if auth middleware is applied
 
-    axios.get("http://localhost:5000/TravelRoute/RouteList", {
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/TravelRoute/RouteList`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -41,52 +44,57 @@ const VehicleBooking = ({ customerId }) => {
       .catch(err => console.error(err));
   }, []);
 
-  // Update matched route & vehicles when source/destination/type changes
-  useEffect(() => {
-    if (source && destination) {
-      const route = routes.find(
-        r => r.source === source && r.destination === destination
-      );
-      setMatchedRoute(route);
-
-      if (route) {
-        const vehicles = vehicleType === "Car" ? route.carIds : route.autoIds;
-        const activeVehicles = vehicles.filter(v => v.Active);
-        setAvailableVehicles(activeVehicles);
+  const fetchAvailableVehicle = async (type) => {
+    try {
+      const token = localStorage.getItem("token"); // or wherever your token is
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/BookingAPI/getAvailableVehicles`, {
+        params: {
+          type: type,
+          source: source,         // or your state variable for source
+          destination: destination // or your state variable for destination
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  console.log(response.data);
+      if (response.data.code === 1) {
+        setAvailableVehicles(response.data.vehicles);
+        setKM(response.data.kilometer+"KM")
       } else {
         setAvailableVehicles([]);
+        toast.error(response.data.message || "No vehicles found.");
       }
+    } catch (error) {
+      console.error("Error fetching available vehicles:", error);
+      toast.error("Failed to fetch vehicles.");
+      setAvailableVehicles([]);
     }
-  }, [source, destination, vehicleType, routes]);
-
-  // Calculate rent
-  useEffect(() => {
-    if (selectedVehicle && matchedRoute) {
-      const vehicle = availableVehicles.find(v => v._id === selectedVehicle);
-      if (vehicle) {
-        setRentAmount(matchedRoute.kilometer * vehicle.rentPerDay);
-      }
-    }
-  }, [selectedVehicle, matchedRoute, availableVehicles]);
+  };
+  
 
   const handleBooking = () => {
-    if (!matchedRoute || !selectedVehicle || !travelDateTime) {
-      alert("Please fill all fields.");
+    if (!source || !destination || !selectedVehicle || !travelDateTime) {
+      //alert("Please fill all fields.");
+      toast.error("Please fill all fields.")
       return;
     }
 
     const bookingData = {
-      customerId,
-      routeId: matchedRoute._id,
+      source:source,
+      destination:destination,
       vehicleId: selectedVehicle,
       vehicleType,
       travelDateTime,
       rentAmount,
     };
-
-    axios.post("http://localhost:5000/VehicleBooking/create", bookingData)
-      .then(() => {
-        alert("Booking successful!");
+    const token = localStorage.getItem("token"); // or wherever your token is
+    axios.post(`${import.meta.env.VITE_API_BASE_URL}/BookingAPI/CreateBooking`,bookingData,{ headers: {
+      Authorization: `Bearer ${token}`,
+    }})
+          .then((response) => {
+        //alert("Booking successful!");
+        toast.success(response.data.message)
         // Reset form if needed
         setSource("");
         setDestination("");
@@ -97,8 +105,10 @@ const VehicleBooking = ({ customerId }) => {
       .catch(err => console.error(err));
   };
 
-  const uniqueSources = [...new Set(routes.map(r => r.source))];
-  const uniqueDestinations = [...new Set(routes.map(r => r.destination))];
+  //const uniqueSources = [...new Set(routes.map(r => r.source))];
+  //const uniqueDestinations = [...new Set(routes.map(r => r.destination))];
+  const uniqueSources = Array.from({ length: 10 }, (_, i) => `Source-${i + 1}`);
+  const uniqueDestinations = Array.from({ length: 10 }, (_, i) => `Destination-${i + 1}`);
 
   return (
     <CustomerLayout>
@@ -132,21 +142,31 @@ const VehicleBooking = ({ customerId }) => {
             ))}
           </Select>
         </FormControl>
-
+<Typography>{km}</Typography>
         {/* Vehicle Type */}
-        <FormControl component="fieldset" margin="normal">
-          <RadioGroup
-            row
-            value={vehicleType}
-            onChange={(e) => {
-              setVehicleType(e.target.value);
-              setSelectedVehicle(null);
-            }}
-          >
-            <FormControlLabel value="Car" control={<Radio />} label="Car" />
-            <FormControlLabel value="Auto" control={<Radio />} label="Auto" />
-          </RadioGroup>
-        </FormControl>
+        <FormControl fullWidth margin="normal">
+  <InputLabel id="vehicle-type-label">Vehicle Type</InputLabel>
+  <Select
+    labelId="vehicle-type-label"
+    value={vehicleType}
+    label="Vehicle Type"
+    onChange={(e) => {
+      const type = e.target.value;
+      setVehicleType(type);
+      setSelectedVehicle(null);
+      if (type !== "SELECT" && source && destination) {
+        fetchAvailableVehicle(type);
+      } else {
+        toast.warn("Please select source and destination first.");
+        setAvailableVehicles([]);
+      }
+    }}
+  >
+    <MenuItem value="SELECT">--SELECT VEHICLE--</MenuItem>
+    <MenuItem value="Car">Car</MenuItem>
+    <MenuItem value="Auto">Auto</MenuItem>
+  </Select>
+</FormControl>
 
         {/* Available Vehicles */}
         {availableVehicles.length > 0 && (
@@ -154,7 +174,22 @@ const VehicleBooking = ({ customerId }) => {
             <InputLabel>Select Vehicle</InputLabel>
             <Select
               value={selectedVehicle || ""}
-              onChange={(e) => setSelectedVehicle(e.target.value)}
+              onChange={(e) =>{
+                const selectedId = e.target.value;
+                setSelectedVehicle(selectedId);
+          
+                // Find the selected vehicle object
+                const vehicle = availableVehicles.find((v) => v._id === selectedId);
+          
+          const kilometer = parseFloat(km.replace("KM",""))
+          
+                if (vehicle && kilometer > 0) {
+                  const rent = vehicle.rentPerDay * kilometer;
+                  setRentAmount(rent);
+                } else {
+                  setRentAmount(0);
+                }
+              }}
               label="Select Vehicle"
             >
               {availableVehicles.map((vehicle) => (

@@ -11,8 +11,8 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
-import Header from '../webpages/Header';
-import Footer from '../webpages/Footer';
+import Header from './Header';
+import Footer from './Footer';
 import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
@@ -46,8 +46,16 @@ const Register = () => {
   
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+  
+    // Allow only numbers for mobile
+    if (name === 'mobile') {
+      if (!/^\d*$/.test(value)) return; // block non-digits
+      if (value.length > 10) return;    // block more than 10 digits
+    }
+  
+    setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: '' });
   };
 
   const handleSubmit = async (e) => {
@@ -165,7 +173,7 @@ const Register = () => {
               sx={{ mb: 2 }}
             />
 
-            <Button fullWidth variant="contained" type="submit">
+            <Button fullWidth variant="contained" sx={{backgroundColor: "#f7735b",}} type="submit">
               Register
             </Button>
           </form>

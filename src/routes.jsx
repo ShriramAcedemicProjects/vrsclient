@@ -11,10 +11,12 @@ import TravelRoute from "./adminComponents/TravelRoute";
 import TravelRouteList from "./adminComponents/TravelRouteList";
 import TravelRouteEdit from "./adminComponents/TravelRouteEdit";
 import Home from "./webpages/Home";
-import Register from "./customerComponents/Register";
-import CustomerLogin from "./customerComponents/CustomerLogin"
-import CustomerDashboard from "./customerComponents/CustomerDashboard";
-import VehicleBooking from "./customerComponents/VehicleBooking";
+import Register from "./webpages/Register";
+import CustomerLogin from "./webpages/CustomerLogin"
+import CustomerDashboard from "./webpages/CustomerDashboard";
+import VehicleBooking from "./webpages/VehicleBooking";
+import DriverLogin from "./webpages/DriverLogin"
+import DriverDashboard from "./webpages/DriverDashboard";
 
 const AppRoutes = () => {
   return (
@@ -37,6 +39,8 @@ const AppRoutes = () => {
         <Route path="/CustomerLogin" element={<CustomerLogin />} />
         <Route path="/CustomerDashboard" element={<CustomerDashboard />} />
         <Route path="/VehicleBooking" element={<VehicleBooking />} /> {/* Redirect to Home for any unmatched routes */}
+        <Route path="/DriverLogin" element={<DriverLogin />} />
+        <Route path="/DriverDashboard" element={<DriverDashboard />} />
       </Routes>
     </Router>
   );
